@@ -1,4 +1,5 @@
 import random
+import time
 
 from tkinter import Tk, BOTH, Canvas
 
@@ -79,8 +80,43 @@ class Cell:
         if undo:
             color = "gray"
         self._window.draw_line(Line(Point(x1,y1), Point(x2,y2)), color)
-        
 
+class Maze:
+    def __init__(self, x1, y1, num_rows, num_cols, cell_size_x, cell_size_y, win):
+        self.x1 = x1
+        self.y1 = y1
+        self.num_rows = num_rows
+        self.num_cols = num_cols
+        self.cell_size_x = cell_size_x
+        self.cell_size_y = cell_size_y
+        self.win = win
+        self._cells = []
+        self._create_cells()
+
+
+    def _create_cells(self):
+        width = 2
+        for i in range(0, self.num_cols):
+            self._cells.append([])
+            for j in range(0, self.num_rows):
+                p1 = Point(i * self.cell_size_x + self.x1, j * self.cell_size_y + self.y1)
+                p2 = Point((i + 1) * self.cell_size_x + self.x1, (j + 1) * self.cell_size_y + self.y1)
+                cell = Cell(self.win, p1, p2)
+                self._cells[i].append(cell)
+            
+        for i in range(0, len(self._cells)):
+            for j in range(0, len(self._cells[i])):
+                self._draw_cell(i, j)
+        
+    def _draw_cell(self, i, j):
+        self._cells[i][j].draw("black")
+        self._animate()
+    
+    def _animate(self):
+        num_seconds = 2
+        self.win.redraw()
+        time.sleep(num_seconds / self.num_cols / self.num_rows)
+            
 
 def main():
     win = Window(800, 600)
@@ -88,6 +124,14 @@ def main():
     grid_width = 15
     grid_height = 10
     cell_size = 50
+
+    #draw_random_maze(width, grid_width, grid_height, cell_size, win)
+    
+    maze = Maze(width, width, grid_height, grid_width, cell_size, cell_size, win)
+
+    win.wait_for_close()
+
+def draw_random_maze(width, grid_width, grid_height, cell_size, win):
     cells = []
     undo = False
     random_range = 1
@@ -115,6 +159,5 @@ def main():
 
             cell.draw("black")
 
-    win.wait_for_close()
 
 main()
