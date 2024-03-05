@@ -1,11 +1,11 @@
 import random
 import time
 
-from tkinter import Tk, BOTH, Canvas
+from tkinter import Tk, BOTH, Canvas, Button
 
 class Window:
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, maze_height, button_command):
         self.__root = Tk()
         self.__root.title("Maze solver")
         self.__root.geometry(f"{width}x{height}")
@@ -14,9 +14,14 @@ class Window:
         self.__canvas.config(width = width, height = height)
         self.__canvas.pack()
 
+        regen = Button(self.__canvas, command = button_command, text = "Regenerate")
+        regen.place(x=10, y=maze_height + 20)
 
         self.__window_is_running = False
         self.__root.protocol("WM_DELETE_WINDOW", self.close)
+    
+    def clear(self):
+        self.__canvas.delete("all")
 
     def redraw(self):
         self.__root.update_idletasks()
@@ -191,16 +196,22 @@ class Maze:
         time.sleep(num_seconds / self.num_cols / self.num_rows)
             
 
+ratio = 1
+width = 5
+grid_width = 15 * ratio
+grid_height = 10 * ratio
+cell_size = 50 / ratio
+seed = None
+win = None
+
 def main():
-    ratio = 2
-    win = Window(800, 600)
-    width = 5
-    grid_width = 15 * ratio
-    grid_height = 10 * ratio
-    cell_size = 50 / ratio
-    seed = None
+    win = Window(800, 600, grid_height * cell_size, lambda: regen_maze(win))
+    regen_maze(win)
+    win.wait_for_close()
+
+def regen_maze(win):
+    win.clear()
     maze = Maze(width, width, grid_height, grid_width, cell_size, cell_size, seed, win)
     maze.solve()
-    win.wait_for_close()
 
 main()
