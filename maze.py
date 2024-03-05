@@ -56,6 +56,7 @@ class Cell:
         self.has_bottom_wall = True
         self.has_right_wall = True
         self.has_left_wall = True
+        self.visited = False
 
     def draw(self, color):
         x1 = self._p1.x
@@ -79,7 +80,7 @@ class Cell:
         self._window.draw_line(Line(Point(x1,y1), Point(x2,y2)), color)
 
 class Maze:
-    def __init__(self, x1, y1, num_rows, num_cols, cell_size_x, cell_size_y, win=None):
+    def __init__(self, x1, y1, num_rows, num_cols, cell_size_x, cell_size_y, seed=None, win=None):
         self.x1 = x1
         self.y1 = y1
         self.num_rows = num_rows
@@ -90,6 +91,14 @@ class Maze:
         self._cells = []
         self._create_cells()
         self._break_entrance_and_exit()
+
+        if not seed==None:
+            random.seed(seed)
+        self.break_walls_r(0,0)
+        self._reset_visited()
+
+    def solve(self):
+        self._solve_r(0,0)
 
     def _create_cells(self):
         width = 2
@@ -111,6 +120,66 @@ class Maze:
         self._cells[self.num_cols - 1][self.num_rows - 1].has_bottom_wall = False
         self._draw_cell(0,0)
         self._draw_cell(self.num_cols - 1, self.num_rows - 1)
+
+    def break_walls_r(self, i, j):
+        self._cells[i][j].visited = True
+        self._draw_cell(i,j)
+        
+        while(True):
+            unvisited_neighbors = []
+
+            neighbors = [(i-1,j), (i+1,j), (i,j-1), (i,j+1)]
+            for n in neighbors:
+                if -1 < n[0] < self.num_cols and -1 < n[1] < self.num_rows and not self._cells[n[0]][n[1]].visited:
+                    unvisited_neighbors.append(n)    
+        
+            range = len(unvisited_neighbors)
+            if range == 0:
+                return 
+            break_wall = unvisited_neighbors[random.randint(0, range-1)]
+            self._break_wall(i, j, break_wall[0], break_wall[1])
+            self.break_walls_r(break_wall[0], break_wall[1])
+
+    def _break_wall(self, x1, y1, x2, y2):
+        if x1 < x2:
+            self._cells[x1][y1].has_right_wall = False
+            self._cells[x2][y2].has_left_wall = False
+        elif x1 > x2:
+            self._cells[x1][y1].has_left_wall = False
+            self._cells[x2][y2].has_right_wall = False
+        elif y1 < y2:
+            self._cells[x1][y1].has_bottom_wall = False
+            self._cells[x2][y2].has_top_wall = False
+        elif y1 > y2:
+            self._cells[x1][y1].has_top_wall = False
+            self._cells[x2][y2].has_bottom_wall = False
+
+    def _reset_visited(self):
+        for i in range(0, self.num_cols):
+            for j in range(0, self.num_rows):
+                self._cells[i][j].visited = False
+
+    def _solve_r(self, i, j):
+        self._animate()
+        cell = self._cells[i][j]
+        cell.visited = True
+        if i==self.num_cols-1 and j==self.num_rows-1:
+            return True
+
+        directions = [
+            (i - 1, j, lambda: cell.has_left_wall),
+            (i + 1, j, lambda: cell.has_right_wall),
+            (i, j - 1, lambda: cell.has_top_wall),
+            (i, j + 1, lambda: cell.has_bottom_wall)]
+        for d in directions:
+            if -1 < d[0] < self.num_cols and -1 < d[1] < self.num_rows and not self._cells[d[0]][d[1]].visited and not d[2]():
+                cell.draw_move(self._cells[d[0]][d[1]])
+                move = self._solve_r(d[0], d[1])
+                if move:
+                    return True
+                cell.draw_move(self._cells[d[0]][d[1]], True)
+        return False           
+        
         
     def _draw_cell(self, i, j):
         self._cells[i][j].draw("black")
@@ -123,41 +192,15 @@ class Maze:
             
 
 def main():
+    ratio = 2
     win = Window(800, 600)
     width = 5
-    grid_width = 15
-    grid_height = 10
-    cell_size = 50
-    #draw_random_maze(width, grid_width, grid_height, cell_size, win)    
-    maze = Maze(width, width, grid_height, grid_width, cell_size, cell_size, win)
+    grid_width = 15 * ratio
+    grid_height = 10 * ratio
+    cell_size = 50 / ratio
+    seed = None
+    maze = Maze(width, width, grid_height, grid_width, cell_size, cell_size, seed, win)
+    maze.solve()
     win.wait_for_close()
-
-def draw_random_maze(width, grid_width, grid_height, cell_size, win):
-    cells = []
-    undo = False
-    random_range = 1
-
-    for i in range(0, grid_width):
-        cells.append([])
-        for j in range(0, grid_height):
-            p1 = Point(i * cell_size + width, j * cell_size + width)
-            p2 = Point((i + 1) * cell_size + width, (j + 1) * cell_size + width)
-            cell = Cell(win, p1, p2)
-            cells[i].append(cell)
-
-            b = random.randint(0, random_range)
-            r = random.randint(0, random_range)
-            if b == 0:
-                cell.has_bottom_wall = False
-            if r == 0:
-                cell.has_right_wall = False
-            if j > 0 and not cells[i][j-1].has_bottom_wall:
-                cell.has_top_wall = False
-                cell.draw_move(cells[i][j-1], undo)
-            if i > 0 and not cells[i-1][j].has_right_wall:
-                cell.has_left_wall = False
-                cell.draw_move(cells[i-1][j], undo)
-
-            cell.draw("black")
 
 main()
